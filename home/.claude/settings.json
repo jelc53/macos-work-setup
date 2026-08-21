@@ -1,3 +1,7 @@
 {
-  "theme": "dark"
+  "voice": {
+    "enabled": true,
+    "mode": "hold"
+  },
+  "model": "claude-fable-5"
 }
