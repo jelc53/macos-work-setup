@@ -19,6 +19,22 @@ serve() {
 
 up() { curl -sf "http://localhost:$1/health" >/dev/null 2>&1; }
 
+# wait_ready <name> <port> — /health returns 503 while the model loads
+wait_ready() {
+  local name="$1" port="$2"
+  for _ in $(seq 1 120); do
+    if up "$port"; then
+      echo "  ready $name :$port"
+      return
+    fi
+    pgrep -f "llama-server --host 127.0.0.1 --port $port " >/dev/null || break
+    sleep 1
+  done
+  echo "  FAIL  $name :$port — last log lines:"
+  tail -20 "$LOGS/llama-$name.log"
+  exit 1
+}
+
 start() {
   serve coder 8080 \
     -m "$MODELS/qwen3-coder-30b/Qwen3-Coder-30B-A3B-Instruct-UD-Q4_K_XL.gguf" \
@@ -26,6 +42,8 @@ start() {
   serve embeddings 8082 \
     -m "$MODELS/nomic-embed/nomic-embed-text-v1.5.f16.gguf" \
     --embeddings --pooling mean -c 8192 -b 8192 -ub 8192
+  wait_ready coder 8080
+  wait_ready embeddings 8082
   echo "web UI: http://localhost:8080"
 }
 
